@@ -1,0 +1,24 @@
+/**
+ * Mismos valores exactos que el prototipo del statement ya aprobado.
+ * Se duplican acá (no se referencia el HTML del prototipo, que vive
+ * fuera de src/) porque todavía no existe una hoja de estilos compartida
+ * en el proyecto. Cuando se integre esta vista con el statement real en
+ * una etapa posterior, conviene unificar esto en un solo archivo de
+ * tokens para que no puedan divergir con el tiempo.
+ */
+:root {
+  --background: #F7F4EC;
+  --surface-hover: #EFEAD9;
+  --text-primary: #26221C;
+  --text-secondary: #5B5548;
+  --text-muted: #8C8575;
+  --border: #D8D2C4;
+  --border-strong: #C7BFA9;
+  --income: #2F6B4F;
+  --expense: #A6421F;
+  --focus: #3D5A73;
+
+  --font-serif: 'Fraunces', serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-sans: 'Public Sans', sans-serif;
+}

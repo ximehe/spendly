@@ -1,0 +1,280 @@
+/* Statement — misma composición aprobada, ahora con datos reales y estados. */
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 24px 64px;
+}
+
+/* ---------- Balance strip ---------- */
+
+.balance-strip {
+  padding: 40px 0 24px;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.balance-strip.is-stuck {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--background);
+  padding: 14px 0;
+}
+
+.balance-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.balance-label {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+
+.balance-strip.is-stuck .balance-label {
+  display: none;
+}
+
+.balance-amount {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 32px;
+  line-height: 36px;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.balance-strip.is-stuck .balance-amount {
+  font-size: 24px;
+  line-height: 28px;
+}
+
+/* ---------- Layout: statement + índice ---------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: 640px 200px;
+  gap: 64px;
+  justify-content: center;
+  padding-top: 32px;
+}
+
+.statement {
+  max-width: 640px;
+}
+
+.month-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 24px;
+}
+
+.month-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 26px;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+/* ---------- Estados (vacío / carga / error / mes futuro) ---------- */
+
+.empty-state__primary {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.empty-state__secondary {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-secondary);
+  margin: 0 0 16px;
+}
+
+/* ---------- Día + transacciones ---------- */
+
+.day-group + .day-group {
+  margin-top: 24px;
+}
+
+.day-heading {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-secondary);
+  font-weight: 400;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.tx-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tx-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.tx-row:hover {
+  background: var(--surface-hover);
+}
+
+.tx-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tx-desc {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.tx-category {
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+.tx-amount {
+  flex: 0 0 130px;
+  width: 130px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 20px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tx-amount.income {
+  color: var(--income);
+}
+
+.tx-amount.expense {
+  color: var(--expense);
+}
+
+/* ---------- Índice (aside) ---------- */
+
+.index-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.index-title {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.index-list {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.index-item {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-secondary);
+  text-align: left;
+  text-decoration: none;
+}
+
+.index-item:hover,
+.index-item:focus-visible {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.index-item[aria-current="page"] {
+  color: var(--text-primary);
+}
+
+.category-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.category-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.category-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.category-amount {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.category-amount.income {
+  color: var(--income);
+}
+
+.category-amount.expense {
+  color: var(--expense);
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 768px) {
+  .page {
+    padding: 0 16px 48px;
+  }
+
+  .balance-strip {
+    padding: 24px 0 16px;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding-top: 24px;
+  }
+
+  .statement {
+    max-width: none;
+    order: 1;
+  }
+
+  aside.index-nav {
+    order: 2;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-strong);
+  }
+}
