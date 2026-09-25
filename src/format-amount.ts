@@ -54,7 +54,6 @@ export function parseAmountInput(raw: string): number | null {
   }
 
   if (integerPart === '') integerPart = '0';
-  if (integerPart === '' && decimalPart === '') return null;
 
   const numeric = Number(`${integerPart}.${decimalPart || '0'}`);
   return Number.isFinite(numeric) ? numeric : null;

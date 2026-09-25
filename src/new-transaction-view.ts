@@ -13,25 +13,47 @@ import type { Transaction, TransactionType, CategoryId } from './types';
  * cargue como módulo nativo en el navegador sin bundler. Los imports
  * `import type` (como el de abajo) no la necesitan porque desaparecen
  * del JS emitido.
+ *
+ * Etapa 6: este archivo se generalizó para servir tanto "Nuevo
+ * movimiento" como "Editar movimiento". Es el mismo formulario, misma
+ * validación, mismo formato de montos — la única diferencia real es
+ * de dónde salen los valores iniciales y qué pasa con `id`/`createdAt`
+ * al construir el resultado.
  */
 
-export interface NewTransactionViewOptions {
+export interface TransactionFormViewOptions {
+  readonly mode: 'create' | 'edit';
+
   /**
    * Mes de origen desde el que se abre el formulario, ej. '2026-08'.
-   * Si no se indica, se asume que se abrió desde el mes actual y la
-   * fecha inicial es hoy. Si se indica un mes pasado, la fecha inicial
-   * se resuelve con `resolveDateForMonth` (mismo día del mes si existe,
-   * si no el último día válido).
+   * Solo se usa en modo 'create' (para resolver la fecha inicial); en
+   * modo 'edit' la fecha inicial sale directamente del movimiento.
    */
   readonly originMonthKey?: string;
+
+  /**
+   * El movimiento que se está editando. Requerido en modo 'edit'. Su
+   * `id` y `createdAt` se preservan sin cambios al guardar.
+   */
+  readonly editingTransaction?: Transaction | undefined;
+
+  /**
+   * Categoría preseleccionada al abrir el formulario en modo 'create',
+   * por ejemplo cuando se abre con un filtro por categoría activo. Es
+   * solamente un valor inicial del campo: no se persiste en ningún lado
+   * más allá de esta vista. Sin efecto en modo 'edit' (ahí manda la
+   * categoría del movimiento).
+   */
+  readonly initialCategoryId?: CategoryId | undefined;
 
   /** Se llama cuando el usuario cancela. Sin confirmación. */
   readonly onCancel: () => void;
 
   /**
-   * Punto de integración con la persistencia real (Etapa 3). Se llama con
-   * un objeto ya completo y compatible con `Transaction` cuando el
-   * formulario es válido.
+   * Punto de integración con la persistencia real. Se llama con un
+   * objeto ya completo y compatible con `Transaction` cuando el
+   * formulario es válido — en modo 'edit', con el mismo `id`/`createdAt`
+   * del movimiento original.
    *
    * Devuelve `true` si el guardado se resolvió con éxito (en ese caso
    * quien llama es responsable de desmontar/reemplazar esta vista y
@@ -40,7 +62,7 @@ export interface NewTransactionViewOptions {
    * permanece montada, con todos los datos intactos, y muestra el
    * mensaje de error general ya definido.
    */
-  readonly onSubmit: (draft: Transaction) => boolean;
+  readonly onSubmit: (result: Transaction) => boolean;
 }
 
 function createTransactionId(): string {
@@ -52,38 +74,61 @@ function createTransactionId(): string {
 }
 
 /**
- * Monta la vista "Nuevo movimiento" dentro de `container`, reemplazando
- * su contenido. No hace nada con `localStorage` ni con navegación real:
- * ambas quedan delegadas a los callbacks de `options`.
+ * Monta el formulario de movimiento (creación o edición) dentro de
+ * `container`, reemplazando su contenido. No hace nada con
+ * `localStorage` ni con navegación real: ambas quedan delegadas a los
+ * callbacks de `options`.
  */
-export function mountNewTransactionView(
+export function mountTransactionFormView(
   container: HTMLElement,
-  options: NewTransactionViewOptions,
+  options: TransactionFormViewOptions,
 ): void {
+  const isEditing = options.mode === 'edit';
+  const editingTransaction = options.editingTransaction;
   const today = getTodayISODate();
-  const initialDate = options.originMonthKey
-    ? resolveDateForMonth(today, options.originMonthKey)
-    : today;
+
+  const initialDate = isEditing && editingTransaction
+    ? editingTransaction.date
+    : options.originMonthKey
+      ? resolveDateForMonth(today, options.originMonthKey)
+      : today;
+
+  const initialType: TransactionType =
+    isEditing && editingTransaction ? editingTransaction.type : 'expense';
+
+  const initialAmountDisplay =
+    isEditing && editingTransaction ? formatAmountUYU(editingTransaction.amount) : '';
+
+  const initialDescription =
+    isEditing && editingTransaction ? editingTransaction.description : '';
+
+  const initialCategoryId: CategoryId =
+    isEditing && editingTransaction
+      ? editingTransaction.category
+      : options.initialCategoryId ?? DEFAULT_CATEGORY_ID;
+
+  const title = isEditing ? 'Editar movimiento' : 'Nuevo movimiento';
+  const saveLabel = isEditing ? 'Guardar cambios' : 'Guardar';
 
   const categoryOptionsHtml = CATEGORIES.map(
     (category) =>
-      `<option value="${category.id}"${category.id === DEFAULT_CATEGORY_ID ? ' selected' : ''}>${category.label}</option>`,
+      `<option value="${category.id}"${category.id === initialCategoryId ? ' selected' : ''}>${category.label}</option>`,
   ).join('');
 
   container.innerHTML = `
     <div class="new-tx">
-      <h1 class="new-tx__title">Nuevo movimiento</h1>
+      <h1 class="new-tx__title">${title}</h1>
 
       <form class="new-tx__form" novalidate>
         <fieldset class="field field--type">
           <legend class="field__label">Tipo</legend>
           <div class="type-options">
             <label class="type-option">
-              <input type="radio" name="type" value="income" />
+              <input type="radio" name="type" value="income" ${initialType === 'income' ? 'checked' : ''} />
               <span>Ingreso</span>
             </label>
             <label class="type-option">
-              <input type="radio" name="type" value="expense" checked />
+              <input type="radio" name="type" value="expense" ${initialType === 'expense' ? 'checked' : ''} />
               <span>Gasto</span>
             </label>
           </div>
@@ -99,6 +144,7 @@ export function mountNewTransactionView(
               inputmode="decimal"
               placeholder="0,00"
               autocomplete="off"
+              value="${initialAmountDisplay}"
               aria-label="Monto en pesos uruguayos"
               aria-describedby="tx-amount-error"
             />
@@ -113,6 +159,7 @@ export function mountNewTransactionView(
             type="text"
             placeholder="Supermercado, sueldo, factura de UTE…"
             maxlength="160"
+            value="${initialDescription.replace(/"/g, '&quot;')}"
             aria-describedby="tx-description-error"
           />
           <p class="field__error" id="tx-description-error" role="alert" hidden></p>
@@ -139,7 +186,7 @@ export function mountNewTransactionView(
 
         <div class="new-tx__actions">
           <button type="button" class="action-link action-link--cancel">Cancelar</button>
-          <button type="submit" class="action-link action-link--save">Guardar</button>
+          <button type="submit" class="action-link action-link--save">${saveLabel}</button>
         </div>
 
         <p class="new-tx__save-error" id="tx-save-error" aria-live="polite" hidden></p>
@@ -167,7 +214,18 @@ export function mountNewTransactionView(
   ) {
     // No debería ocurrir: el markup de arriba es fijo. Se deja como
     // guarda defensiva para que TypeScript no obligue a usar '!' en cada línea.
-    throw new Error('No se pudo inicializar la vista "Nuevo movimiento".');
+    throw new Error('No se pudo inicializar el formulario de movimiento.');
+  }
+
+  // Etapa 6, foco al abrir: el formulario reemplaza por completo lo que
+  // había antes (statement o el propio formulario), así que sin esto el
+  // foco quedaría perdido en <body>. El monto es "el primer campo
+  // editable relevante" (Tipo ya viene con un valor por defecto/actual
+  // razonable). En edición, se selecciona el texto para poder
+  // sobreescribirlo de inmediato si corresponde.
+  amountInput.focus();
+  if (isEditing) {
+    amountInput.select();
   }
 
   function getSelectedType(): TransactionType {
@@ -237,8 +295,16 @@ export function mountNewTransactionView(
     }
   }
 
+  // Etapa 6, robustez: evita que un doble submit (doble click/doble
+  // Enter) dispare dos guardados. En la práctica un guardado exitoso ya
+  // reemplaza este formulario entero antes de que un segundo evento
+  // pueda procesarse, pero esto lo hace explícito y a prueba de un
+  // guardado que tome más de un tick en el futuro.
+  let isSubmitting = false;
+
   form.addEventListener('submit', (event) => {
     event.preventDefault();
+    if (isSubmitting) return;
 
     // Un nuevo intento de guardado limpia el error general anterior,
     // sin esperar a que se edite un campo puntual.
@@ -284,21 +350,27 @@ export function mountNewTransactionView(
     }
 
     // A esta altura parsedAmount es un número > 0 garantizado por la validación.
-    const draft: Transaction = {
-      id: createTransactionId(),
+    // En modo edición se preservan id y createdAt del movimiento original;
+    // en modo creación se generan de cero.
+    const result: Transaction = {
+      id: isEditing && editingTransaction ? editingTransaction.id : createTransactionId(),
       type: getSelectedType(),
       amount: parsedAmount as number,
       description: description.trim(),
       category,
       date,
-      createdAt: new Date().toISOString(),
+      createdAt: isEditing && editingTransaction
+        ? editingTransaction.createdAt
+        : new Date().toISOString(),
     };
 
+    isSubmitting = true;
     // Punto de integración con la persistencia real: si options.onSubmit
     // devuelve false, el guardado falló y esta vista se queda tal cual,
     // mostrando el motivo, sin perder nada de lo ya escrito.
-    const saved = options.onSubmit(draft);
+    const saved = options.onSubmit(result);
     if (!saved) {
+      isSubmitting = false;
       saveError.hidden = false;
       saveError.textContent =
         'No se pudo guardar el movimiento. Revisá los datos e intentá de nuevo.';
